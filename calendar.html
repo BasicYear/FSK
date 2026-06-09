@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FSK</title>
+<style type="text/css">
+
+    html, body {
+        margin: 0;
+        font-family: arial;
+        font-size: 20px;
+        color: white;
+        text-shadow: 1px 1px 0px rgba(0,0,0,1);
+        overscroll-behavior: none;
+        line-height: 1;
+    }
+
+    .background-image {
+        display: block;
+        height: 100vh;
+        height: 100dvh;
+        width: 100%;
+        object-fit: cover;
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 0;
+    }
+
+    .logo {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 4;
+    }
+
+    .logo-vertical {
+        max-height: 40vh;
+        width: auto;
+    }
+
+    .overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: black;
+        opacity: 0;
+        pointer-events: none;
+        z-index: 2;
+    }
+
+    .intro {
+        height: 100dvh;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        position: relative;
+        z-index: 3;
+    }
+
+    .intro-controls {
+        padding: 0 10px;
+    }
+
+    .details-trigger {
+        text-align: center;
+        padding: 20px 20px 1em 20px;
+        cursor: pointer;
+        filter: drop-shadow(1px 1px 0px rgba(0,0,0,1));
+    }
+
+    .today-preview {
+        list-style: none;
+        padding: 0.4em 10px 0;
+        margin: 0;
+        overflow: hidden;
+        filter: drop-shadow(1px 1px 0px rgba(0,0,0,1));
+    }
+
+    .today-preview .preview-entry {
+        display: flex;
+        padding: 0.2em 0;
+    }
+
+    .today-preview .preview-title {
+        text-align: right;
+        flex-shrink: 0;
+    }
+
+    .today-preview .preview-dots {
+        flex: 1;
+        overflow: hidden;
+        margin: 0 4px;
+    }
+
+    .today-preview .preview-dots::after {
+        content: '..........................................................................';
+    }
+
+    .preview-entry.now-playing {
+        color: red;
+    }
+
+    .week-nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.4em 0;
+        border-top: 1.5px solid white;
+        border-bottom: 1.5px solid white;
+        filter: drop-shadow(2px 2px 0px rgba(0,0,0,1));
+    }
+
+    .week-nav button {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 28px;
+        cursor: pointer;
+        padding: 0 8px;
+        line-height: 1;
+    }
+
+    .date-strip {
+        display: flex;
+        overflow-x: auto;
+        scrollbar-width: none;
+        border-bottom: 1.5px solid white;
+        padding: 0.4em 0;
+        filter: drop-shadow(2px 2px 0px rgba(0,0,0,1));
+    }
+
+    .date-strip::-webkit-scrollbar {
+        display: none;
+    }
+
+    .date-chip {
+        flex: 1;
+        text-align: center;
+        cursor: pointer;
+        padding: 0 0.25em;
+        white-space: nowrap;
+        font-size: 0.85em;
+        line-height: 1.2;
+    }
+
+    .date-chip.active {
+        font-weight: bold;
+    }
+
+    .date-chip.today {
+        color: red;
+    }
+
+    .calendar {
+        list-style: none;
+        padding: 0 10px 40px 10px;
+        margin: 0;
+        position: relative;
+        z-index: 3;
+    }
+
+    .week-content ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .day-header {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        padding-top: 1em;
+        padding-bottom: 0.5em;
+        font-weight: bold;
+        text-align: center;
+    }
+
+    .film-entry {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .film-entry-row {
+        display: flex;
+        align-items: baseline;
+        flex-wrap: wrap;
+        margin-bottom: 1em;
+    }
+
+    .film-entry .time {
+        flex-shrink: 0;
+    }
+
+    .film-entry .title-text {
+        text-align: right;
+        margin-left: auto;
+    }
+
+    .countdown {
+        opacity: 0.4;
+        font-size: 0.8em;
+    }
+
+    .film-image-container {
+        position: relative;
+        margin-top: 10px;
+        margin-bottom: 1em;
+    }
+
+    .film-preview {
+        width: 100%;
+        display: block;
+        object-fit: cover;
+    }
+
+    .film-overlay-title {
+        position: absolute;
+        bottom: 0.5em;
+        right: 0.5em;
+        text-align: right;
+        max-width: 80%;
+    }
+
+    .film-overlay-time {
+        position: absolute;
+        bottom: 0.5em;
+        left: 0.5em;
+    }
+
+    .grain {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 10;
+        opacity: 0.15;
+        mix-blend-mode: overlay;
+    }
+
+    .week-content {
+        display: none;
+    }
+
+    .week-content.active {
+        display: block;
+    }
+
+    .day-section {
+        position: relative;
+        border-bottom: 1.5px solid white;
+        padding-bottom: 1em;
+        filter: drop-shadow(1px 1px 0px rgba(0,0,0,1));
+    }
+
+</style>
+</head>
+<body>
+
+<img class="background-image" id="bg" src="" alt="">
+<img class="logo logo-vertical" src="images/logo_vertical.png" alt="">
+<div class="overlay"></div>
+<canvas class="grain" id="grain"></canvas>
+
+<div class="intro">
+    <div class="intro-controls">
+        <div class="week-nav">
+            <button id="prev">&#8249;</button>
+            <span id="week-label">Diese Woche</span>
+            <button id="next">&#8250;</button>
+        </div>
+        <div class="date-strip" id="date-strip"></div>
+    </div>
+
+    <ul class="today-preview" id="today-preview"></ul>
+
+    <div class="details-trigger" id="details-trigger">Details<br>&#8964;</div>
+</div>
+
+<ul class="calendar">
+
+    <li class="week-content" data-week="0">
+        <ul>
+            <li class="day-header">Do. 21.5</li>
+            <li>17:45 The North</li>
+            <li>18:00 Mauern Aus Sand</li>
+            <li>19:45 Rose</li>
+            <li>20:30 Eagles Of The Republic</li>
+
+            <li class="day-header">Fr. 22.5</li>
+            <li>17:45 Eagles Of The Republic</li>
+            <li>18:00 The North</li>
+            <li>19:45 Mauern Aus Sand</li>
+            <li>20:30 Rose</li>
+
+            <li class="day-header">Sa. 23.5</li>
+            <li>13:00 Rose</li>
+            <li>13:15 Wolves</li>
+            <li>15:15 Wolken Über Lützerath</li>
+            <li>15:30 Mauern Aus Sand</li>
+            <li>17:30 Was An Empfindsamkeit Bleibt</li>
+            <li>18:00 Eagles Of The Republic</li>
+            <li>20:00 Rose</li>
+            <li>20:30 The North</li>
+
+            <li class="day-header">So. 24.5</li>
+            <li>13:15 Eagles Of The Republic</li>
+            <li>13:45 Wolves</li>
+            <li>15:15 Mauern Aus Sand</li>
+            <li>16:15 Wolken Über Lützerath</li>
+            <li>18:00 Was An Empfindsamkeit Bleibt</li>
+            <li>18:15 The North</li>
+            <li>20:00 Rose</li>
+            <li>20:30 Eagles Of The Republic</li>
+
+            <li class="day-header">Mo. 25.5</li>
+            <li>17:45 Mauern Aus Sand</li>
+            <li>18:00 Rose</li>
+            <li>19:45 Eagles Of The Republic</li>
+            <li>20:30 The North</li>
+
+            <li class="day-header">Di. 26.5</li>
+            <li>17:30 The North</li>
+            <li>18:00 Ich Verstehe Ihren Unmut</li>
+            <li>20:00 Mauern Aus Sand</li>
+            <li>20:30 Eagles Of The Republic</li>
+
+            <li class="day-header">Mi. 27.5</li>
+            <li>17:45 Eagles Of The Republic</li>
+            <li>18:00 Mauern Aus Sand</li>
+            <li>19:45 Rose</li>
+            <li>20:30 The North</li>
+        </ul>
+    </li>
+
+    <li class="week-content active" data-week="1">
+        <ul>
+            <li class="day-header">Heute, Do. 28.5</li>
+            <li data-countdown="(jetzt)">17:45 Rose</li>
+            <li data-countdown="(in 15m)">18:00 Eagles Of The Republic</li>
+            <li data-countdown="(in 2h)">19:45 The North</li>
+            <li data-countdown="(in 2h 45m)">20:30 Mauern Aus Sand</li>
+
+            <li class="day-header">Fr. 29.5</li>
+            <li>17:45 Rose</li>
+            <li>18:00 Eagles Of The Republic</li>
+            <li>19:45 The North</li>
+            <li>20:30 Mauern Aus Sand</li>
+            <li>21:00 Ein Sehr Langer Filmtitel Der Wahrscheinlich Nicht In Eine Zeile Passt</li>
+
+            <li class="day-header">Sa. 30.5</li>
+            <li>13:00 Eagles Of The Republic</li>
+            <li>13:15 Was An Empfindsamkeit Bleibt</li>
+            <li>15:15 The North</li>
+            <li>15:30 Wolves</li>
+            <li>17:30 Wolken Über Lützerath</li>
+            <li>18:00 Mauern Aus Sand</li>
+            <li>20:00 Eagles Of The Republic</li>
+            <li>20:30 Rose</li>
+
+            <li class="day-header">So. 31.5</li>
+            <li>13:15 Was An Empfindsamkeit Bleibt</li>
+            <li>13:45 Eagles Of The Republic</li>
+            <li>15:15 The North</li>
+            <li>16:15 Wolves</li>
+            <li>18:00 Mauern Aus Sand</li>
+            <li>18:15 Wolken Über Lützerath</li>
+            <li>20:00 Eagles Of The Republic</li>
+            <li>20:30 Rose</li>
+
+            <li class="day-header">Mo. 1.6</li>
+            <li>17:45 Rose</li>
+            <li>18:00 Eagles Of The Republic</li>
+            <li>19:45 The North</li>
+            <li>20:30 Mauern Aus Sand</li>
+
+            <li class="day-header">Di. 2.6</li>
+            <li>17:30 Eagles Of The Republic</li>
+            <li>18:00 Ich Verstehe Ihren Unmut</li>
+            <li>20:00 The North</li>
+            <li>20:30 Mauern Aus Sand</li>
+
+            <li class="day-header">Mi. 3.6</li>
+            <li>17:45 Rose</li>
+            <li>18:00 Eagles Of The Republic</li>
+            <li>19:45 The North</li>
+            <li>20:30 Mauern Aus Sand</li>
+        </ul>
+    </li>
+
+    <li class="week-content" data-week="2">
+        <ul>
+            <li class="day-header">Do. 4.6</li>
+            <li>17:45 Mauern Aus Sand</li>
+            <li>18:00 Rose</li>
+            <li>19:45 Eagles Of The Republic</li>
+            <li>20:30 The North</li>
+
+            <li class="day-header">Fr. 5.6</li>
+            <li>17:45 The North</li>
+            <li>18:00 Mauern Aus Sand</li>
+            <li>19:45 Rose</li>
+            <li>20:30 Eagles Of The Republic</li>
+
+            <li class="day-header">Sa. 6.6</li>
+            <li>13:00 Mauern Aus Sand</li>
+            <li>13:15 Wolken Über Lützerath</li>
+            <li>15:15 Eagles Of The Republic</li>
+            <li>15:30 Was An Empfindsamkeit Bleibt</li>
+            <li>17:30 Rose</li>
+            <li>18:00 Wolves</li>
+            <li>20:00 The North</li>
+            <li>20:30 Eagles Of The Republic</li>
+
+            <li class="day-header">So. 7.6</li>
+            <li>13:15 Wolves</li>
+            <li>13:45 Rose</li>
+            <li>15:15 Eagles Of The Republic</li>
+            <li>16:15 Was An Empfindsamkeit Bleibt</li>
+            <li>18:00 The North</li>
+            <li>18:15 Mauern Aus Sand</li>
+            <li>20:00 Wolken Über Lützerath</li>
+            <li>20:30 Eagles Of The Republic</li>
+
+            <li class="day-header">Mo. 8.6</li>
+            <li>17:45 Eagles Of The Republic</li>
+            <li>18:00 The North</li>
+            <li>19:45 Mauern Aus Sand</li>
+            <li>20:30 Rose</li>
+
+            <li class="day-header">Di. 9.6</li>
+            <li>17:30 Mauern Aus Sand</li>
+            <li>18:00 Ich Verstehe Ihren Unmut</li>
+            <li>20:00 Eagles Of The Republic</li>
+            <li>20:30 The North</li>
+
+            <li class="day-header">Mi. 10.6</li>
+            <li>17:45 The North</li>
+            <li>18:00 Eagles Of The Republic</li>
+            <li>19:45 Mauern Aus Sand</li>
+            <li>20:30 Rose</li>
+        </ul>
+    </li>
+
+</ul>
+
+<script>
+    const backgrounds = [
+        'images/eaglesoftherepublic1.webp',
+        'images/MauernAusSand.webp',
+        'images/rose.webp',
+        'images/thenorth.webp',
+        'images/wolves.webp',
+        'images/ichversteheihrenunmut.webp',
+        'images/wolkenueberluetzerath.webp',
+        'images/Wasanempfindsamkeitbleibt.webp',
+    ];
+    document.getElementById('bg').src = backgrounds[Math.floor(Math.random() * backgrounds.length)];
+
+    history.scrollRestoration = 'manual';
+
+    const imageMap = {
+        'The North': 'thenorth.webp',
+        'Mauern Aus Sand': 'MauernAusSand.webp',
+        'Rose': 'rose.webp',
+        'Eagles Of The Republic': 'eaglesoftherepublic1.webp',
+        'Wolves': 'wolves.webp',
+        'Ich Verstehe Ihren Unmut': 'ichversteheihrenunmut.webp',
+        'Wolken Über Lützerath': 'wolkenueberluetzerath.webp',
+        'Was An Empfindsamkeit Bleibt': 'Wasanempfindsamkeitbleibt.webp',
+        'Ein Sehr Langer Filmtitel Der Wahrscheinlich Nicht In Eine Zeile Passt': 'eaglesoftherepublic1.webp',
+    };
+
+    document.querySelectorAll('.week-content ul li:not(.day-header)').forEach(li => {
+        const text = li.textContent.trim();
+        const spaceIdx = text.indexOf(' ');
+        const time = text.slice(0, spaceIdx);
+        const film = text.slice(spaceIdx + 1);
+        const countdown = li.dataset.countdown ? ` <span class="countdown">${li.dataset.countdown}</span>` : '';
+        li.className = 'film-entry';
+        const imgSrc = imageMap[film];
+        li.innerHTML = imgSrc
+            ? `<div class="film-image-container">
+                <img class="film-preview" src="images/${imgSrc}" alt="${film}">
+                <span class="film-overlay-title">${film}</span>
+                <span class="film-overlay-time">${time}${countdown}</span>
+               </div>`
+            : `<div class="film-entry-row"><span class="time">${time}${countdown}</span><span class="title-text">${film}</span></div>`;
+    });
+
+    document.querySelectorAll('.week-content ul').forEach(ul => {
+        let section = null;
+        Array.from(ul.children).forEach(item => {
+            if (item.classList.contains('day-header')) {
+                section = document.createElement('div');
+                section.className = 'day-section';
+                ul.appendChild(section);
+            }
+            if (section) section.appendChild(item);
+        });
+    });
+
+    const grainCanvas = document.getElementById('grain');
+    const ctx = grainCanvas.getContext('2d');
+
+    function resizeGrain() {
+        grainCanvas.width = window.innerWidth;
+        grainCanvas.height = window.innerHeight;
+    }
+    resizeGrain();
+    window.addEventListener('resize', resizeGrain);
+
+    function drawGrain() {
+        const w = grainCanvas.width;
+        const h = grainCanvas.height;
+        const imageData = ctx.createImageData(w, h);
+        const data = imageData.data;
+        for (let i = 0; i < data.length; i += 4) {
+            const v = Math.random() * 255;
+            data[i] = data[i+1] = data[i+2] = v;
+            data[i+3] = 255;
+        }
+        ctx.putImageData(imageData, 0, 0);
+        requestAnimationFrame(drawGrain);
+    }
+    drawGrain();
+
+    const weeks = document.querySelectorAll('.week-content');
+    const label = document.getElementById('week-label');
+    const labels = ['Letzte Woche', 'Diese Woche', 'Nächste Woche'];
+    let current = 1;
+
+    const overlay = document.querySelector('.overlay');
+    const intro = document.querySelector('.intro');
+    const logoVertical = document.querySelector('.logo-vertical');
+    const dateStrip = document.getElementById('date-strip');
+    const todayPreview = document.getElementById('today-preview');
+
+    document.getElementById('details-trigger').addEventListener('click', () => {
+        document.querySelector('.calendar').scrollIntoView({ behavior: 'smooth' });
+    });
+
+    function updateDateStrip() {
+        const chips = dateStrip.querySelectorAll('.date-chip');
+        const sections = document.querySelectorAll('.week-content.active .day-section');
+        let activeIndex = 0;
+        sections.forEach((section, i) => {
+            if (section.getBoundingClientRect().top <= window.innerHeight / 2) activeIndex = i;
+        });
+        chips.forEach((chip, i) => chip.classList.toggle('active', i === activeIndex));
+    }
+
+    function buildDateStrip() {
+        dateStrip.innerHTML = '';
+        document.querySelectorAll('.week-content.active .day-section').forEach(section => {
+            const header = section.querySelector('.day-header');
+            const match = header.textContent.trim().match(/([A-Za-zäöü]+)\.\s*(\d+\.\d+)/);
+            if (!match) return;
+            const chip = document.createElement('div');
+            chip.className = 'date-chip';
+            chip.innerHTML = `<div>${match[1]}.</div><div>${match[2]}</div>`;
+            if (header.textContent.includes('Heute')) chip.classList.add('today');
+            chip.addEventListener('click', () => section.scrollIntoView({ behavior: 'smooth' }));
+            dateStrip.appendChild(chip);
+        });
+        updateDateStrip();
+    }
+
+    function buildTodayPreview() {
+        todayPreview.innerHTML = '';
+        const sections = document.querySelectorAll('.week-content.active .day-section');
+        const todaySection = Array.from(sections).find(s =>
+            s.querySelector('.day-header').textContent.includes('Heute')
+        ) || sections[0];
+        if (!todaySection) return;
+        todaySection.querySelectorAll('.film-entry').forEach(entry => {
+            const time = entry.querySelector('.film-overlay-time')?.textContent.trim()
+                || entry.querySelector('.time')?.textContent.trim();
+            const title = entry.querySelector('.film-overlay-title')?.textContent.trim()
+                || entry.querySelector('.title-text')?.textContent.trim();
+            if (!time || !title) return;
+            const li = document.createElement('li');
+            li.className = 'preview-entry';
+            if (time.includes('jetzt')) li.classList.add('now-playing');
+            li.innerHTML = `<span class="preview-time">${time}</span><span class="preview-dots"></span><span class="preview-title">${title}</span>`;
+            todayPreview.appendChild(li);
+        });
+    }
+
+    window.addEventListener('scroll', () => {
+        requestAnimationFrame(() => {
+            const progress = window.scrollY / (intro.offsetHeight / 2);
+            overlay.style.opacity = Math.min(progress, 1);
+            logoVertical.style.opacity = progress >= 0.5 ? 0 : 1;
+            updateDateStrip();
+        });
+    });
+
+    function switchWeek(dir) {
+        const next = current + dir;
+        if (next < 0 || next >= weeks.length) return;
+        weeks[current].classList.remove('active');
+        current = next;
+        weeks[current].classList.add('active');
+        label.textContent = labels[current] || 'Woche ' + (current + 1);
+        buildDateStrip();
+        buildTodayPreview();
+    }
+
+    document.getElementById('prev').addEventListener('click', () => switchWeek(-1));
+    document.getElementById('next').addEventListener('click', () => switchWeek(1));
+
+    buildDateStrip();
+    buildTodayPreview();
+</script>
+
+</body>
+</html>
