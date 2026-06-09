@@ -9,7 +9,7 @@
     html, body {
         margin: 0;
         font-family: arial;
-        font-size: 20px;
+        font-size: 21px;
         color: white;
         text-shadow: 1px 1px 0px rgba(0,0,0,1);
         overscroll-behavior: none;
@@ -38,6 +38,7 @@
     .logo-vertical {
         max-height: 40vh;
         width: auto;
+        filter: blur(0.4px);
     }
 
     .overlay {
@@ -59,22 +60,25 @@
         justify-content: flex-end;
         position: relative;
         z-index: 3;
+        filter: blur(0.4px);
     }
 
-    .intro-controls {
-        padding: 0 10px;
+    .heute-label {
+        text-align: center;
+        padding: 0.2em 10px 0.2em 10px;
+filter: drop-shadow(1px 1px 0px rgba(0,0,0,1));
     }
 
     .details-trigger {
         text-align: center;
-        padding: 20px 20px 1em 20px;
+        padding: 0.2em 20px 1em 20px;
         cursor: pointer;
         filter: drop-shadow(1px 1px 0px rgba(0,0,0,1));
     }
 
     .today-preview {
         list-style: none;
-        padding: 0.4em 10px 0;
+        padding: 0 10px 0;
         margin: 0;
         overflow: hidden;
         filter: drop-shadow(1px 1px 0px rgba(0,0,0,1));
@@ -102,6 +106,15 @@
 
     .preview-entry.now-playing {
         color: red;
+    }
+
+    .week-nav-item {
+        position: sticky;
+        top: 0;
+        z-index: 6;
+        background: black;
+        padding: 0 10px;
+        filter: blur(0.4px);
     }
 
     .week-nav {
@@ -161,6 +174,7 @@
         margin: 0;
         position: relative;
         z-index: 3;
+        filter: blur(0.4px);
     }
 
     .week-content ul {
@@ -207,8 +221,8 @@
 
     .film-image-container {
         position: relative;
-        margin-top: 10px;
-        margin-bottom: 1em;
+        margin-top: 5px;
+        margin-bottom: 0.5em;
     }
 
     .film-preview {
@@ -219,16 +233,16 @@
 
     .film-overlay-title {
         position: absolute;
-        bottom: 0.5em;
-        right: 0.5em;
+        bottom: 0.25em;
+        right: 0.25em;
         text-align: right;
         max-width: 80%;
     }
 
     .film-overlay-time {
         position: absolute;
-        bottom: 0.5em;
-        left: 0.5em;
+        bottom: 0.25em;
+        left: 0.25em;
     }
 
     .grain {
@@ -268,18 +282,18 @@
 <canvas class="grain" id="grain"></canvas>
 
 <div class="intro">
-    <div class="intro-controls">
-        <div class="week-nav">
-            <button id="prev">&#8249;</button>
-            <span id="week-label">Diese Woche</span>
-            <button id="next">&#8250;</button>
-        </div>
-        <div class="date-strip" id="date-strip"></div>
-    </div>
-
+    <div class="heute-label">Heute</div>
     <ul class="today-preview" id="today-preview"></ul>
+    <div class="details-trigger" id="details-trigger">&#8964;</div>
+</div>
 
-    <div class="details-trigger" id="details-trigger">Details<br>&#8964;</div>
+<div class="week-nav-item">
+    <div class="week-nav">
+        <button id="prev">&#8249;</button>
+        <span id="week-label">Diese Woche</span>
+        <button id="next">&#8250;</button>
+    </div>
+    <div class="date-strip" id="date-strip"></div>
 </div>
 
 <ul class="calendar">
@@ -542,7 +556,9 @@
     const todayPreview = document.getElementById('today-preview');
 
     document.getElementById('details-trigger').addEventListener('click', () => {
-        document.querySelector('.calendar').scrollIntoView({ behavior: 'smooth' });
+        const weekNavHeight = document.querySelector('.week-nav-item').offsetHeight;
+        const calendarTop = document.querySelector('.calendar').getBoundingClientRect().top + window.scrollY;
+        window.scrollTo({ top: calendarTop - weekNavHeight, behavior: 'smooth' });
     });
 
     function updateDateStrip() {
@@ -592,12 +608,19 @@
         });
     }
 
+    const detailsTriggerEl = document.getElementById('details-trigger');
+    const heuteLabelEl = document.querySelector('.heute-label');
+
     window.addEventListener('scroll', () => {
         requestAnimationFrame(() => {
             const progress = window.scrollY / (intro.offsetHeight / 2);
             overlay.style.opacity = Math.min(progress, 1);
-            logoVertical.style.opacity = progress >= 0.5 ? 0 : 1;
             updateDateStrip();
+            const introVisible = window.scrollY === 0;
+            logoVertical.style.opacity = introVisible ? 1 : 0;
+            todayPreview.style.visibility = introVisible ? 'visible' : 'hidden';
+            detailsTriggerEl.style.visibility = introVisible ? 'visible' : 'hidden';
+            heuteLabelEl.style.visibility = introVisible ? 'visible' : 'hidden';
         });
     });
 
@@ -609,7 +632,6 @@
         weeks[current].classList.add('active');
         label.textContent = labels[current] || 'Woche ' + (current + 1);
         buildDateStrip();
-        buildTodayPreview();
     }
 
     document.getElementById('prev').addEventListener('click', () => switchWeek(-1));
