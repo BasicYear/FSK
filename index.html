@@ -16,16 +16,18 @@
         line-height: 1;
     }
 
+    .bg-wrapper {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        overflow: hidden;
+    }
+
     .background-image {
         display: block;
-        height: 100vh;
-        height: 100dvh;
         width: 100%;
+        height: 100%;
         object-fit: cover;
-        position: fixed;
-        top: 0;
-        left: 0;
-        z-index: 0;
     }
 
     .logo {
@@ -112,9 +114,9 @@ filter: drop-shadow(1px 1px 0px rgba(0,0,0,1));
         position: sticky;
         top: 0;
         z-index: 6;
-        background: black;
         padding: 0 10px;
         filter: blur(0.4px);
+        visibility: hidden;
     }
 
     .week-nav {
@@ -122,8 +124,6 @@ filter: drop-shadow(1px 1px 0px rgba(0,0,0,1));
         align-items: center;
         justify-content: space-between;
         padding: 0.4em 0;
-        border-top: 1.5px solid white;
-        border-bottom: 1.5px solid white;
         filter: drop-shadow(2px 2px 0px rgba(0,0,0,1));
     }
 
@@ -141,7 +141,6 @@ filter: drop-shadow(1px 1px 0px rgba(0,0,0,1));
         display: flex;
         overflow-x: auto;
         scrollbar-width: none;
-        border-bottom: 1.5px solid white;
         padding: 0.4em 0;
         filter: drop-shadow(2px 2px 0px rgba(0,0,0,1));
     }
@@ -161,12 +160,9 @@ filter: drop-shadow(1px 1px 0px rgba(0,0,0,1));
     }
 
     .date-chip.active {
-        font-weight: bold;
-    }
-
-    .date-chip.today {
         color: red;
     }
+
 
     .calendar {
         list-style: none;
@@ -267,7 +263,6 @@ filter: drop-shadow(1px 1px 0px rgba(0,0,0,1));
 
     .day-section {
         position: relative;
-        border-bottom: 1.5px solid white;
         padding-bottom: 1em;
         filter: drop-shadow(1px 1px 0px rgba(0,0,0,1));
     }
@@ -276,7 +271,7 @@ filter: drop-shadow(1px 1px 0px rgba(0,0,0,1));
 </head>
 <body>
 
-<img class="background-image" id="bg" src="" alt="">
+<div class="bg-wrapper"><img class="background-image" id="bg" src="" alt=""></div>
 <img class="logo logo-vertical" src="images/logo_vertical.png" alt="">
 <div class="overlay"></div>
 <canvas class="grain" id="grain"></canvas>
@@ -556,7 +551,8 @@ filter: drop-shadow(1px 1px 0px rgba(0,0,0,1));
     const todayPreview = document.getElementById('today-preview');
 
     document.getElementById('details-trigger').addEventListener('click', () => {
-        const weekNavHeight = document.querySelector('.week-nav-item').offsetHeight;
+        weekNavItem.style.visibility = 'visible';
+        const weekNavHeight = weekNavItem.offsetHeight;
         const calendarTop = document.querySelector('.calendar').getBoundingClientRect().top + window.scrollY;
         window.scrollTo({ top: calendarTop - weekNavHeight, behavior: 'smooth' });
     });
@@ -580,7 +576,6 @@ filter: drop-shadow(1px 1px 0px rgba(0,0,0,1));
             const chip = document.createElement('div');
             chip.className = 'date-chip';
             chip.innerHTML = `<div>${match[1]}.</div><div>${match[2]}</div>`;
-            if (header.textContent.includes('Heute')) chip.classList.add('today');
             chip.addEventListener('click', () => section.scrollIntoView({ behavior: 'smooth' }));
             dateStrip.appendChild(chip);
         });
@@ -610,6 +605,7 @@ filter: drop-shadow(1px 1px 0px rgba(0,0,0,1));
 
     const detailsTriggerEl = document.getElementById('details-trigger');
     const heuteLabelEl = document.querySelector('.heute-label');
+    const weekNavItem = document.querySelector('.week-nav-item');
 
     window.addEventListener('scroll', () => {
         requestAnimationFrame(() => {
@@ -621,6 +617,8 @@ filter: drop-shadow(1px 1px 0px rgba(0,0,0,1));
             todayPreview.style.visibility = introVisible ? 'visible' : 'hidden';
             detailsTriggerEl.style.visibility = introVisible ? 'visible' : 'hidden';
             heuteLabelEl.style.visibility = introVisible ? 'visible' : 'hidden';
+            weekNavItem.style.visibility = introVisible ? 'hidden' : 'visible';
+            weekNavItem.style.background = weekNavItem.getBoundingClientRect().top === 0 ? 'black' : 'transparent';
         });
     });
 
